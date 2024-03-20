@@ -448,18 +448,18 @@ class Operations(pyfuse3.Operations):
         return await self.getattr(inode)
 
     # helper function to get all data for a file from telegram
-    async def get_telegram_data(self, fh):
-        filebuf = self.client.get_cached_file(self.fh_to_inode[fh])
+    async def get_telegram_data(self, inode):
+        filebuf = self.client.get_cached_file(inode)
         if filebuf != None:
             return filebuf
         # CHECK if we have ANY messages for this inode
         try:
             # get telegram messages for inode
-            msgIds = self.get_rows('SELECT * FROM telegram_messages WHERE inode=?', (self.fh_to_inode[fh],))
+            msgIds = self.get_rows('SELECT * FROM telegram_messages WHERE inode=?', (inode,))
             ids = [r[0] for r in msgIds]
 
             # FOR EACH message, call telegram API and get contents
-            filebuf = self.client.download_file(self.fh_to_inode[fh], ids)
+            filebuf = self.client.download_file(inode, ids)
             return filebuf
         # if no rows, return empty bytes immediately
         except Exception as e:
