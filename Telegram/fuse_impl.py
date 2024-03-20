@@ -43,7 +43,7 @@ import trio
 from io import BytesIO
 import gc
 import atexit
-from uuid import uuid4
+from utils import uuid
 
 try:
     import faulthandler
@@ -213,17 +213,17 @@ class Operations(pyfuse3.Operations):
         return self.get_row('SELECT * FROM inodes WHERE id=?', (inode,))['target']
 
     async def opendir(self, inode, ctx):
-        fh = uuid4().int
+        fh = uuid()
         self.fh_to_inode[fh] = inode
         return fh
 
-    async def readdir(self, inode, off, token):
+    async def readdir(self, fh, off, token):
         if off == 0:
             off = -1
 
         cursor2 = self.db.cursor()
         cursor2.execute("SELECT * FROM contents WHERE parent_inode=? "
-                        'AND rowid > ? ORDER BY rowid', (inode, off))
+                        'AND rowid > ? ORDER BY rowid', (self.fh_to_inode[fh], off))
 
         for row in cursor2:
             pyfuse3.readdir_reply(
@@ -411,7 +411,7 @@ class Operations(pyfuse3.Operations):
         #pylint: disable=W0613
         self.inode_open_count[inode] += 1
 
-        fh = uuid4().int
+        fh = uuid()
         self.fh_to_inode[fh]  = inode
         return pyfuse3.FileInfo(fh=fh)
 
@@ -424,7 +424,7 @@ class Operations(pyfuse3.Operations):
         
         #pylint: disable=W0612
         entry = await self._create(inode_parent, name, mode, ctx)
-        fh = uuid4().int
+        fh = uuid()
         self.fh_to_inode[fh] = entry.st_ino
         self.inode_open_count[entry.st_ino] += 1
         return (pyfuse3.FileInfo(fh=fh), entry)
@@ -491,14 +491,14 @@ class Operations(pyfuse3.Operations):
         if offset == len(result_bytes):
             self.write_buffer[fh] += buf
         else:
-            self.write_buffer[fh] = result_bytes[fh][:offset] + buf + result_bytes[offset+len(buf):] # this is kind of slow
+            self.write_buffer[fh] = result_bytes[:offset] + buf + result_bytes[offset+len(buf):] # this is kind of slow
 
         return len(buf)
 
     async def close(self, fh):
         pass
 
-    async def fsync(self, fh):
+    async def fsync(self, fh, datasync):
         pass
 
     async def release(self, fh):
