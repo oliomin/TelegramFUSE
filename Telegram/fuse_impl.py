@@ -302,9 +302,9 @@ class Operations(pyfuse3.Operations):
                                                        name_old, inode_p_old))
             self.db.commit()
 
-    def delete_msgs_for_inode(self, fh):
+    def delete_msgs_for_inode(self, inode):
         # delete from Telegram
-        rows = self.cursor.execute("SELECT id FROM telegram_messages WHERE inode = ?", (self.fh_to_inode[fh],))
+        rows = self.cursor.execute("SELECT id FROM telegram_messages WHERE inode = ?", (inode,))
         ids = [r[0] for r in rows] 
         self.client.delete_messages(ids)
 
