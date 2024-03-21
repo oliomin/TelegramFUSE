@@ -217,6 +217,9 @@ class Operations(pyfuse3.Operations):
         self.fh_to_inode[fh] = inode
         return fh
 
+    async def releasedir(self, fh):
+        del self.fh_to_inode[fh]
+
     async def readdir(self, fh, off, token):
         if off == 0:
             off = -1
@@ -507,7 +510,7 @@ class Operations(pyfuse3.Operations):
         # IF we have un-written data in the buffer for this fh, yeet it to discord/tgram.
         if len(self.write_buffer[fh]) > 0:
             data = self.write_buffer[fh]
-            self.write_buffer[fh] = bytearray(b'')
+            del self.write_buffer[fh]
             # self.write_buffer.pop(fh)
             print("CLEANED UP ", gc.collect())
             filename = ""
@@ -540,6 +543,7 @@ class Operations(pyfuse3.Operations):
             if (await self.getattr(self.fh_to_inode[fh])).st_nlink == 0:
                 self.cursor.execute("DELETE FROM inodes WHERE id=?", (self.fh_to_inode[fh],))
                 self.db.commit()
+        del self.fh_to_inode[fh]
 
 class NoUniqueValueError(Exception):
     def __str__(self):
