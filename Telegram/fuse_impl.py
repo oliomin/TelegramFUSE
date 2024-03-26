@@ -44,6 +44,7 @@ from io import BytesIO
 import gc
 import atexit
 from utils import uuid
+from resizable_dict import ResizableDict
 
 try:
     import faulthandler
@@ -68,8 +69,8 @@ class Operations(pyfuse3.Operations):
         # buffer data for writes. BYTEARRAY ONLY. I really wanted this to be a dictionary to support multiple files
         # at once, but I had crazy memory management issues with dictionaries (even cachetools, even though we clear entries)
         # so just a buffer.
-        self.write_buffer = defaultdict(bytearray)
-        self.fh_to_inode  = defaultdict(int)
+        self.write_buffer = ResizableDict(bytearray)
+        self.fh_to_inode  = ResizableDict(int)
         try:
             # Check if inodes table exists
             self.cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name=?", ("inodes",))
